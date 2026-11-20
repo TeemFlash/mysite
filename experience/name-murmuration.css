@@ -1,0 +1,5 @@
+#intro-name{position:relative;isolation:isolate;letter-spacing:-.065em}
+#name-flock{position:fixed;inset:0;width:100vw;height:100%;pointer-events:none;display:none;z-index:7}
+#name-flock.is-active{display:block}
+#intro-name.murmuration-active .name-copy{opacity:0}
+@media(prefers-reduced-motion:reduce){#name-flock{display:none!important}#intro-name .name-copy{opacity:1!important}}

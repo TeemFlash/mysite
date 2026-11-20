@@ -1,0 +1,19 @@
+/* Untitled UI button-border Tabs + Button styles adapted to the portfolio palette. */
+:root{--ui-paper:#f7f8f6;--ui-surface:#fff;--ui-muted:#eef0eb;--ui-border:#dce1d9;--ui-ink:#28302c;--ui-secondary:#687265;--ui-accent:#a52c3a;--ui-radius:12px;--ui-shadow:0 1px 3px #26312210,0 1px 2px #26312208;--ui-ease:cubic-bezier(.22,1,.36,1)}
+.hero-navigation{padding:5px;gap:4px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-muted);box-shadow:inset 0 1px 1px #fff8}
+.hero-navigation a{border-radius:8px;color:var(--ui-secondary);font-weight:600;font-size:14px;padding:12px 22px;transition:color .2s}
+.hero-navigation a[aria-current],.hero-navigation a:hover{color:var(--ui-ink)}
+.nav-highlight{border-radius:8px;box-shadow:var(--ui-shadow);background:var(--ui-surface);transition:transform .32s var(--ui-ease),width .32s var(--ui-ease)}
+.skill-tabs{border-radius:var(--ui-radius);background:var(--ui-muted);border:1px solid var(--ui-border);padding:4px;gap:4px;overflow:visible;box-shadow:inset 0 1px 1px #fff8}
+.skill-tabs button{font-family:inherit;font-weight:600;font-size:13px;border-radius:8px;min-height:44px;padding:10px 18px;color:var(--ui-secondary);transition:color .2s}
+.skill-tabs button[aria-selected=true]{color:var(--ui-ink)}.skill-tabs button:hover{color:var(--ui-accent)}
+.skill-indicator{border-radius:8px;box-shadow:var(--ui-shadow);background:var(--ui-surface);transition:transform .32s var(--ui-ease),width .32s var(--ui-ease)}
+.language-controls{border-radius:var(--ui-radius);background:var(--ui-muted);border-color:var(--ui-border);box-shadow:var(--ui-shadow)}
+.language-controls button{border-radius:9px;min-width:52px}.language-selection{background:var(--ui-surface);border-radius:8px;box-shadow:var(--ui-shadow)}
+.contact-method{height:112px;border-color:var(--ui-border)}.contact-trigger{font-weight:600;transition:color .2s,transform .2s var(--ui-ease)}.contact-trigger:hover{transform:translateX(4px)}.contact-trigger:active{transform:translateX(2px)}.contact-result{color:var(--ui-accent);text-decoration-thickness:1px;text-decoration-color:#a52c3a55;transition:text-decoration-color .2s}.contact-result:hover{text-decoration-color:var(--ui-accent)}
+.project-open{border-radius:16px}.project-open .open-circle{box-shadow:var(--ui-shadow);border:1px solid #fff8;transition:background .2s,color .2s,transform .25s var(--ui-ease)}.project-open:hover .open-circle{background:var(--ui-ink);color:white;transform:translate(2px,-2px)}
+.hero-navigation a:focus-visible,.skill-tabs button:focus-visible,.contact-trigger:focus-visible,.contact-result:focus-visible,.project-open:focus-visible,.language-controls button:focus-visible{outline:2px solid var(--ui-accent);outline-offset:4px}
+#close-project{border-radius:8px;min-width:44px;min-height:44px;transition:background .2s}#close-project:hover{background:var(--ui-muted)}
+@media(max-width:760px){.hero-navigation a{font-size:12px;padding:12px 10px}.skill-tabs{gap:0}.skill-tabs button{font-size:12px;padding:10px 12px}.contact-method{height:96px}}
+@media(max-width:360px){.hero-navigation a{font-size:11px;padding:12px 8px}.skill-tabs button{font-size:11px;padding:10px 8px}}
+@media(prefers-reduced-motion:reduce){.hero-navigation a,.nav-highlight,.skill-indicator,.skill-tabs button,.contact-trigger,.contact-result,.project-open .open-circle,#close-project{transition:none}.contact-trigger:hover,.contact-trigger:active,.project-open:hover .open-circle{transform:none}}

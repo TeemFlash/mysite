@@ -1,0 +1,9 @@
+.agents/
+.specify/
+.graphifyignore
+graphify-out/
+docs/cleanup-manifest.json
+docs/runtime-dependencies.json
+docs/verification.json
+__pycache__/
+.DS_Store

@@ -1,0 +1,7 @@
+/* Untitled UI Button Group adaptation. Sliding selection is a local enhancement. */
+.language-controls{position:relative;isolation:isolate;display:inline-flex;gap:0;padding:0;border:1px solid #d5d9d2;border-radius:8px;background:#fdfefc;box-shadow:0 1px 2px #1820180d;overflow:visible}
+.language-controls button{position:relative;z-index:1;min-width:50px;min-height:44px;padding:10px 14px;border:0;border-radius:7px;background:transparent!important;color:#687065;font:inherit;font-size:13px;font-weight:600;backdrop-filter:none;transition:color .2s}
+.language-controls button[aria-pressed=true]{color:#28302c;background:transparent}.language-controls button:hover{color:#a52c3a}.language-controls button:focus-visible{outline:2px solid #a52c3a;outline-offset:3px}
+.language-selection{position:absolute;left:2px;top:2px;bottom:2px;width:calc(50% - 2px);border-radius:5px;background:#e9ede6;box-shadow:0 1px 2px #1820180b;transform:translateX(100%);transition:transform .32s cubic-bezier(.22,1,.36,1);pointer-events:none}
+html[lang=ru] .language-selection{transform:translateX(0)}
+@media(prefers-reduced-motion:reduce){.language-selection,.language-controls button{transition:none}}

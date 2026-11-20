@@ -1,0 +1,8 @@
+/* One keyboard-accessible hit area over the entire deck, including the record. */
+#player-shell #record-control{inset:0;width:100%;height:100%;border-radius:7%;transform:none;transition:none;z-index:8;cursor:pointer}
+#player-shell #record-control:focus-visible{outline:3px solid #9f3038;outline-offset:6px}
+/* Preserve the intro's viewport geometry, then anchor the deck to the hero page. */
+body[data-state=scene] #player-shell{position:absolute;left:50vw;top:44vh;will-change:auto}
+@media(max-width:760px){body[data-state=scene] #player-shell{top:43vh}}
+
+@media(max-height:500px){#introduction{min-height:900px}}
