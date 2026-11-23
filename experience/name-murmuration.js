@@ -70,7 +70,7 @@ let px,py,vx,vy,depth,phase,target,tx,ty;
 let textMask=null,softTextMask=null,solidAlpha=0;
 let rect={left:0,top:0},screenW=1,screenH=1;
 let hx=-1e5,hy=-1e5,last=performance.now(),clock=0;
-const colors={ink:'#282d2b'},opts={current:{flyFor:1.1,holdFor:7,interactive:true}};
+const colors={ink:'#282d2b'},opts={current:{flyFor:1.1,interactive:true}};
 const rand=mmwRandom(11);
 function active(){return ctx&&visible&&!document.hidden&&!motion.matches&&document.body.dataset.state==='scene'&&n>0}
 function layout(){
@@ -78,12 +78,12 @@ function layout(){
  w=Math.round(r.width);h=Math.round(r.height);dpr=Math.min(devicePixelRatio||1,1.5);screenW=innerWidth;screenH=innerHeight;canvas.width=Math.round(screenW*dpr);canvas.height=Math.round(screenH*dpr);rect=r;
  const m=document.createElement('canvas');m.width=w;m.height=h;const mc=m.getContext('2d',{willReadFrequently:true});
  const style=getComputedStyle(root),size=parseFloat(style.fontSize),line=parseFloat(style.lineHeight);
- mc.font=`${style.fontWeight} ${size}px ${style.fontFamily}`;mc.textBaseline='top';mc.fillStyle='#282d2b';
+ mc.font=`${style.fontWeight} ${size}px ${style.fontFamily}`;mc.textBaseline='top';colors.ink=getComputedStyle(document.documentElement).getPropertyValue('--text').trim()||'#282d2b';mc.fillStyle=colors.ink;
  // Sample the same compact tracking as the real heading, without canvas letterSpacing dependency.
  for(const [i,word] of ['Temirlan','Zhumakpayev'].entries()){
   let x=0;for(const char of word){mc.fillText(char,x,i*line);x+=mc.measureText(char).width+parseFloat(style.letterSpacing);}
  }
- textMask=m;solidAlpha=0;hx=hy=-1e5;
+ textMask=m;hx=hy=-1e5;
  // Cache the softened glyphs once; no live blur/filter in the animation loop.
  softTextMask=document.createElement('canvas');softTextMask.width=w;softTextMask.height=h;
  const soft=softTextMask.getContext('2d');soft.filter='blur(1.2px)';soft.drawImage(m,0,0);
@@ -93,7 +93,7 @@ function layout(){
  tx=Float32Array.from(points,p=>p[0]);ty=Float32Array.from(points,p=>p[1]);n=Math.min(points.length,innerWidth<600?1000:2600);
  target=mmwAssign(n,points.length,23);px=new Float32Array(n);py=new Float32Array(n);vx=new Float32Array(n);vy=new Float32Array(n);depth=new Float32Array(n);phase=new Float32Array(n);
  for(let i=0;i<n;i++){px[i]=w*(.2+rand()*.6);py[i]=h*(.2+rand()*.6);depth[i]=.55+rand()*.45;phase[i]=rand()*Math.PI*2;}
- clock=0;root.classList.add('murmuration-ready');sync();
+ root.classList.add('murmuration-ready');sync();
 }
 const frame=(now)=>{
       raf = 0
@@ -108,17 +108,10 @@ const frame=(now)=>{
       clock += dt
       const o = opts.current
       const fly = Math.max(1, o.flyFor)
-      const holdEnd=fly+2.4+Math.max(.5,o.holdFor)
-      const dissolveFor=1.6,releaseFor=1.6
-      const releaseStart=holdEnd+dissolveFor
-      const cycle=releaseStart+releaseFor
-      const tc=clock%cycle
-      // Restore the birds in place before releasing them into free flight.
-      let pull=0
-      if(tc>fly&&tc<=fly+2.4)pull=mmwEase((tc-fly)/2.4)
-      else if(tc>fly+2.4&&tc<=releaseStart)pull=1
-      else if(tc>releaseStart)pull=1-mmwEase((tc-releaseStart)/releaseFor)
-      const solidEnvelope=tc<=holdEnd?1:1-mmwEase((tc-holdEnd)/dissolveFor)
+      // Repeat every five minutes of visible animation time, with a soft release first.
+      const tc=clock<300?clock:(clock-300)%300-3.2
+      const pull=tc<0?1-mmwEase((tc+1.6)/1.6):mmwEase((tc-fly)/2.4)
+      const envelope=tc<0?1-mmwEase((tc+3.2)/1.6):1
 
       rect=root.getBoundingClientRect();
       const u = Math.min(w, h)
@@ -187,10 +180,10 @@ const frame=(now)=>{
       ctx.setTransform(dpr, 0, 0, dpr, rect.left*dpr, rect.top*dpr)
       // Blend into a cached solid glyph mask instead of adding thousands of birds.
       const overText=hawk&&hx>=-20&&hx<=w+20&&hy>=-20&&hy<=h+20;
-      const targetSolid=overText?0:mmwEase((tc-fly-2.4)/2.4)*solidEnvelope;
+      const formationAlpha=tc<0?envelope:mmwEase((tc-fly-2.4)/2.4);
+      const targetSolid=overText?0:formationAlpha;
       solidAlpha+=(targetSolid-solidAlpha)*(1-Math.exp(-dt*4));
-      // Exact zero at release; exponential smoothing must not leave a ghost word.
-      if(tc>holdEnd)solidAlpha=Math.min(solidAlpha,solidEnvelope);
+      if(tc<0)solidAlpha=Math.min(solidAlpha,envelope);
       const morph=mmwEase(solidAlpha);
       if(textMask&&solidAlpha>.001){
         const sharpen=mmwEase((solidAlpha-.25)/.75);
@@ -240,3 +233,6 @@ new ResizeObserver(layout).observe(root);
 new MutationObserver(()=>{if(document.body.dataset.state==='scene')layout();else sync()}).observe(document.body,{attributes:true,attributeFilter:['data-state']});
 document.addEventListener('visibilitychange',sync);motion.addEventListener('change',sync);
 document.fonts.ready.then(layout);
+
+// Share the existing morph state without another animation loop or pixel readback.
+export function nameAttachment(){return active()?mmwEase(solidAlpha):1}

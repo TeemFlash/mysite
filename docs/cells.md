@@ -1,0 +1,29 @@
+# Interactive cells
+
+Based on the user-supplied Cell Count by Louis Studios. The nucleus texture is adapted from that source; the membrane now has an irregular outline, translucent cytoplasm and small organelle-like flecks. The original automatic 8,192-cell counter is not used. This is a stylized interaction, not a biological simulation.
+
+`src/components/ui/cell-count.tsx` owns cell creation, input and textures. `cell-motion.ts` updates DOM translations and active morphs at up to 60 frames per second; React updates on division, merging and dragging, not on each simulation frame. At most 100 cells are retained; creating new cells retires the oldest. Eight nucleus textures, one membrane sprite and its unclipped cytoplasm material are generated once.
+
+Five starting cells are placed across the hero, About, Skills, Projects and Contact. Daughters are 8% smaller than their parent, with a 56 px minimum; other cells keep their own size.
+
+Click or Enter/Space divides a cell beside its current position. Dragging or arrow keys move only the selected cell. Other cells keep drifting and unrelated merging or division continues; grabbing a participant interrupts only its own pair. Drag and scroll updates preserve the simulation clock instead of restarting it. Pointer input is batched to one update per frame; releasing flushes the last move. Selection/native dragging do not interfere. The rest of the page remains scrollable on touch devices.
+
+Cells drift with slowly varying velocities. Motion is bounded by the full page, rather than the first viewport. Overlapping cells converge over 1,600 ms, form a single cubic organic outline with no interior membrane seams and become one. Each cell owns its diameter: dividing a parent changes only its daughters, and fusion combines the pair’s area (diameter capped at 120 px). Other cells never resize with population. New or manually moved cells have a 2.5-second grace period so daughters can separate and dragging remains usable. Animated daughters start that grace period when division finishes. Only one pair merges at a time. Reduced-motion preference, hidden-document detection and offscreen detection stop the simulation. There is no pause control. Input listeners and animation frames are cleaned up.
+
+Checks: `tests/cells.py`, `tests/interactions.py`, `tests/cells-performance.py`, `tests/cell-motion.py`. Tests use the local preview; phone behavior is emulated in Chromium.
+
+During fusion, both textured nuclei approach and overlap before settling into one nucleus. The same cached grain masks are used during motion and at rest; the captured mask resolves into the surviving texture while the pigment gradient resolves to the final mixed color. The membrane uses the same organic radial boundary and cached cytoplasm material as the resting sprite. Endpoint ownership switches in one frame without crossfading translucent copies, which would lighten the nucleus.
+
+`cell-pigment.ts` stores pigment mass separately from visual diameter. Mixing remembers both source pigments and their nested histories; division restores those sources, so another division can recover their own components. Eight fusion generations are retained to bound memory; older mixtures keep their final color. Unmixed leaves use symmetric RGB components. Division uses the same 1,600 ms liquid renderer in reverse: the textured nucleus stretches along the division axis, then separates into two pigments. A further 600 ms closes the membrane neck and moves daughters to their independent destinations. Cytoplasm mapping interpolates from the shared surface to each resting sprite. After separation, a small damped spring relaxes the shape and the daughters drift apart at 16 px/s each. Reduced-motion interactions update immediately. The positioned button scales around its top-left origin, keeping its visual center fixed; descendants retain the nucleus mask, so endpoint replacement cannot change the texture. This is a stylized RGB model, not physical pigment mixing.
+
+`node tests/cell-pigment.mjs` checks nested unequal mixtures, recursive restoration, proportions and the history bound. Browser checks verify the shared nucleus contour, stable final color and restoration of actual source colors.
+
+`tests/cell-morph.py` records the final frames across fusion and checks center displacement below 2 px, unchanged texture and size, reverse liquid separation and reduced motion.
+
+The morph regression also checks the late-stage organic contour, cached membrane material, identical nucleus mask and dimensions, and unchanged opacity before replacement. Visual frame strips are inspected separately from geometry assertions.
+
+`tests/cell-morph.py` also checks that visible nuclei stay inside the membrane during division including the stretched mask, and that the membranes separate before returning to free drift. `tests/cell-interrupt.py` checks dragging during a running split or a split stopped by reduced motion: the obsolete overlay is removed and both daughters remain visible.
+
+`cell-contour.ts` traces the original organic boundary using cubic curves, rounding the two junctions and reducing those joins continuously as the neck closes. It avoids radial searches through a non-star-shaped two-lobed outline. `node tests/cell-contour.mjs` checks containment, finite geometry, resting shape, tangent continuity and separation, including unequal lobes.
+
+`tests/cell-drag-motion.py` streams pointer movements once per frame while another cell drifts, and verifies that unrelated division and fusion keep advancing during the gesture at desktop and phone widths. Reduced-motion emulation provides controlled stops in the existing interaction tests.

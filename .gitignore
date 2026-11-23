@@ -7,3 +7,6 @@ docs/runtime-dependencies.json
 docs/verification.json
 __pycache__/
 .DS_Store
+
+node_modules/
+dist/

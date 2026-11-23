@@ -1,0 +1,6 @@
+:root{color-scheme:light;--page:#f7f8f6;--text:#282d2b;--secondary:#687268}
+
+/* Keep text and native image dragging out of pointer interactions. */
+body, body *{-webkit-user-select:none;user-select:none}
+input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
+img,a{-webkit-user-drag:none}

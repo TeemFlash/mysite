@@ -1,3 +1,5 @@
+import os
+BASE = os.environ.get("SITE_URL", "http://127.0.0.1:4173").rstrip("/")
 """Run against the local static server: python tests/smoke.py. Requires Playwright Chromium."""
 from pathlib import Path
 import json
@@ -12,7 +14,7 @@ with sync_playwright() as p:
         errors, missing = [], []
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.on('response', lambda r: missing.append(r.url) if r.status >= 400 and '127.0.0.1' in r.url else None)
-        page.goto('http://127.0.0.1:4173/?preview=hero-player', wait_until='networkidle')
+        page.goto(BASE+'/?preview=hero-player', wait_until='networkidle')
         page.wait_for_url('**/experience/?preview=hero-player')
         assert page.locator('html').get_attribute('lang') == 'en'
         page.screenshot(path=f'/tmp/site-after-{width}-intro.png')
@@ -20,6 +22,8 @@ with sync_playwright() as p:
         page.wait_for_function("document.body.dataset.state==='scene'")
         page.wait_for_timeout(300)
         page.screenshot(path=f'/tmp/site-after-{width}-scene.png', full_page=True)
+        assert page.locator('#circulation').count() == 0
+        assert page.locator('#heart-scene').get_attribute('role') != 'button'
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         page.locator('[data-lang="ru"]').click()
         assert page.locator('html').get_attribute('lang') == 'ru'
@@ -43,7 +47,7 @@ with sync_playwright() as p:
         page.close()
     # Preserve anchors and language when entering through the root.
     page = browser.new_page()
-    page.goto('http://127.0.0.1:4173/?lang=ru#skills')
+    page.goto(BASE+'/?lang=ru#skills')
     page.wait_for_url('**/experience/?lang=ru#skills')
     browser.close()
 (ROOT/'docs/verification.json').write_text(json.dumps(results, indent=2))
