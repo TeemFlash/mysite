@@ -1,4 +1,5 @@
-.light-cells{position:relative;width:100%;max-width:860px;height:clamp(320px,32vw,400px);margin:0 auto;overflow:clip;isolation:isolate;pointer-events:none}
+#about.personal-about{z-index:8}
+.light-cells{position:relative;width:100%;max-width:860px;height:clamp(320px,32vw,400px);margin:0 auto;overflow:visible;isolation:isolate;pointer-events:none}
 .light-cells[hidden]{display:none}
 .living-cell{position:absolute;z-index:1;transform:translate(-50%,-50%);border:0;padding:0;background:none;border-radius:50%;pointer-events:auto;cursor:grab;touch-action:none}
 .living-cell img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;user-select:none}

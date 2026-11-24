@@ -19,10 +19,12 @@ export function Scene() {
 
 export function RecordPlayer() {
   return (
+    <>
     <div id="player-shell">
       <div className="desk photo-deck">
         <img
           className="player-photo"
+          fetchPriority="high"
           src={turntable}
           width="1147"
           height="890"
@@ -57,11 +59,17 @@ export function RecordPlayer() {
           id="record-control"
           disabled
           className="tonearm"
-          aria-label="Включить проигрыватель"
+          aria-label="Start introduction"
           aria-pressed="false"
         ></button>
       </div>
     </div>
+    <p className="intro-entry" aria-live="polite">
+      <span className="intro-loading">Loading…</span>
+      <span className="intro-keyboard">Click anywhere or press any key to start</span>
+      <span className="intro-touch">Tap anywhere to start</span>
+    </p>
+    </>
   );
 }
 

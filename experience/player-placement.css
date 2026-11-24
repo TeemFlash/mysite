@@ -6,3 +6,13 @@ body[data-state=scene] #player-shell{position:absolute;left:50vw;top:44vh;will-c
 @media(max-width:760px){body[data-state=scene] #player-shell{top:43vh}}
 
 @media(max-height:500px){#introduction{min-height:900px}}
+
+/* Keep all photo crops and CSS patches hidden until the deck is ready. */
+#player-shell:not([data-image-ready="true"]){visibility:hidden}
+.intro-entry{position:fixed;left:20px;right:20px;bottom:max(8vh,24px);margin:0;text-align:center;font-size:14px;line-height:1.5;color:#687268;pointer-events:none}
+.intro-entry span{display:none}
+.intro-entry .intro-loading{display:inline}
+body[data-ready=true] .intro-entry .intro-loading{display:none}
+body[data-ready=true] .intro-entry .intro-keyboard{display:inline}
+body:not([data-state=intro]) .intro-entry{display:none}
+@media(pointer:coarse){body[data-ready=true] .intro-entry .intro-keyboard{display:none}body[data-ready=true] .intro-entry .intro-touch{display:inline}}

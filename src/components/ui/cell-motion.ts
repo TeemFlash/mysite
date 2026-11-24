@@ -3,7 +3,15 @@ import { pigment, type Pigment } from "./cell-pigment";
 import { membraneOutline } from "./cell-contour";
 export { membraneRadius } from "./cell-contour";
 
-export type Cell = { id: number; generation: number; size: number; x: number; y: number; fromX: number; fromY: number; pigment?: Pigment; fromColor?: [number, number, number]; fromSize?: number; birth?: number; texture?: number };
+export type Cell = { id: number; generation: number; size: number; x: number; y: number; fromX: number; fromY: number; pigment?: Pigment; fromColor?: [number, number, number]; fromSize?: number; birth?: number; texture?: number; outside?: boolean };
+export function cellBounds(rect: DOMRect, size: number, outside = false) {
+  const radius = size / 2;
+  const left = outside ? -rect.left : 0;
+  const top = outside ? -rect.top - window.scrollY : 0;
+  const width = outside ? document.documentElement.clientWidth : rect.width;
+  const height = outside ? Math.max(document.body.offsetHeight, innerHeight) : rect.height;
+  return { left: left + radius, top: top + radius, right: left + width - radius, bottom: top + height - radius };
+}
 const CELL_COLORS: [number, number, number][] = [[136,105,252],[39,198,153],[251,130,192],[207,229,55],[127,219,247],[252,94,84],[252,144,55],[251,208,93]];
 export const cellColor = (cell: Cell) => cell.pigment?.color ?? CELL_COLORS[(cell.id-1)%CELL_COLORS.length];
 export const cellPigment = (cell: Cell) => cell.pigment ?? pigment(cellColor(cell),cell.size**2);
@@ -273,12 +281,13 @@ export function useCellMotion(field: RefObject<HTMLDivElement | null>, cells: Ce
         body.vy += (Math.cos(now*.00051+body.source.id*1.7)*6+(Math.random()-.5)*35-body.vy*.22)*dt;
         const x = body.x*rect.width/100;
         const y = body.y*rect.height/100;
-        if (x < radius+8) body.vx = Math.abs(body.vx);
-        if (x > rect.width-radius-8) body.vx = -Math.abs(body.vx);
-        if (y < radius+8) body.vy = Math.abs(body.vy);
-        if (y > rect.height-radius-8) body.vy = -Math.abs(body.vy);
-        body.x = Math.max(radius, Math.min(rect.width-radius, x+body.vx*dt))/rect.width*100;
-        body.y = Math.max(radius, Math.min(rect.height-radius, y+body.vy*dt))/rect.height*100;
+        const bounds = cellBounds(rect, body.source.size, body.source.outside);
+        if (x < bounds.left+8) body.vx = Math.abs(body.vx);
+        if (x > bounds.right-8) body.vx = -Math.abs(body.vx);
+        if (y < bounds.top+8) body.vy = Math.abs(body.vy);
+        if (y > bounds.bottom-8) body.vy = -Math.abs(body.vy);
+        body.x = Math.max(bounds.left, Math.min(bounds.right, x+body.vx*dt))/rect.width*100;
+        body.y = Math.max(bounds.top, Math.min(bounds.bottom, y+body.vy*dt))/rect.height*100;
       }
       if (!joining) {
         outer: for (let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) {
@@ -301,8 +310,9 @@ export function useCellMotion(field: RefObject<HTMLDivElement | null>, cells: Ce
         const combined=Math.min(120,Math.hypot(a.source.size,b.source.size));
         const centerX=(joining.ax*weight+joining.bx*(1-weight))*rect.width/100;
         const centerY=(joining.ay*weight+joining.by*(1-weight))*rect.height/100;
-        const x=Math.max(combined/2,Math.min(rect.width-combined/2,centerX))/rect.width*100;
-        const y=Math.max(combined/2,Math.min(rect.height-combined/2,centerY))/rect.height*100;
+        const bounds=cellBounds(rect,combined,a.source.outside || b.source.outside);
+        const x=Math.max(bounds.left,Math.min(bounds.right,centerX))/rect.width*100;
+        const y=Math.max(bounds.top,Math.min(bounds.bottom,centerY))/rect.height*100;
         morph.draw(a,b,{...joining,x,y,size:combined,color:mixedColor(a.source,b.source)},t,rect);
         if(t===1) { latest.current.merge(joining.a,joining.b,x,y); joining=null; }
       }

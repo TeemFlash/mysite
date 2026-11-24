@@ -1,6 +1,6 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import "./cell-count.css";
-import { useCellMotion, cellColor, cellPigment, membraneRadius, type Cell } from "./cell-motion";
+import { useCellMotion, cellBounds, cellColor, cellPigment, membraneRadius, type Cell } from "./cell-motion";
 
 import { mixPigments, splitPigment } from "./cell-pigment";
 
@@ -115,7 +115,7 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
       const parent=current.find(c=>c.id===a);
       const second=current.find(c=>c.id===b);
       if(!parent || !second)return current;
-      return [...current.filter(c=>c.id!==a&&c.id!==b), {id,generation:parent.generation,size:Math.min(120,Math.hypot(parent.size,second.size)),texture:parent.texture??(parent.id-1)%8,x,y,fromX:x,fromY:y,pigment:mixPigments(cellPigment(parent),cellPigment(second))}];
+      return [...current.filter(c=>c.id!==a&&c.id!==b), {id,generation:parent.generation,outside:parent.outside || second.outside,size:Math.min(120,Math.hypot(parent.size,second.size)),texture:parent.texture??(parent.id-1)%8,x,y,fromX:x,fromY:y,pigment:mixPigments(cellPigment(parent),cellPigment(second))}];
     });
   });
   const suppressClick = useRef(false);
@@ -145,33 +145,37 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
       const live = bodies.current.get(id);
       const position = live?.source === cell ? live : cell;
       const radius = cell.size / 2;
-      const x = Math.max(radius, Math.min(rect.width - radius, position.x * rect.width / 100 + dx)) / rect.width * 100;
-      const y = Math.max(radius, Math.min(rect.height - radius, position.y * rect.height / 100 + dy)) / rect.height * 100;
+      const bounds = cellBounds(rect, cell.size, true);
+      const px = Math.max(bounds.left, Math.min(bounds.right, position.x * rect.width / 100 + dx));
+      const py = Math.max(bounds.top, Math.min(bounds.bottom, position.y * rect.height / 100 + dy));
+      const outside = px < radius || px > rect.width-radius || py < radius || py > rect.height-radius;
+      const x = px / rect.width * 100, y = py / rect.height * 100;
       if(live) { live.node.style.translate=""; live.node.style.opacity=""; live.node.style.scale=""; }
       bodies.current.delete(id);
-      return { ...cell, x, y, fromX: x, fromY: y, birth: undefined };
+      return { ...cell, x, y, outside, fromX: x, fromY: y, birth: undefined };
     }));
   }
   useEffect(() => {
     if (!active) return;
-    function keepInField() {
+    function keepInBounds() {
       const node = field.current;
       if (!node) return;
       const rect = node.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
       setCells(current => current.map(cell => {
-        const radius = cell.size / 2;
+        const bounds = cellBounds(rect, cell.size, cell.outside);
         const live = bodies.current.get(cell.id);
         const position = live?.source === cell ? live : cell;
-        const x = Math.max(radius, Math.min(rect.width - radius, position.x * rect.width / 100)) / rect.width * 100;
-        const y = Math.max(radius, Math.min(rect.height - radius, position.y * rect.height / 100)) / rect.height * 100;
+        const x = Math.max(bounds.left, Math.min(bounds.right, position.x * rect.width / 100)) / rect.width * 100;
+        const y = Math.max(bounds.top, Math.min(bounds.bottom, position.y * rect.height / 100)) / rect.height * 100;
         if (Math.abs(x-position.x) < .01 && Math.abs(y-position.y) < .01) return cell;
         return { ...cell, x, y, fromX: x, fromY: y, birth: undefined };
       }));
     }
-    keepInField();
-    const observer = new ResizeObserver(keepInField);
+    keepInBounds();
+    const observer = new ResizeObserver(keepInBounds);
     observer.observe(field.current!);
+    observer.observe(document.body);
     return () => observer.disconnect();
   }, [active]);
   function startDrag(event: PointerEvent<HTMLDivElement>) {
@@ -206,10 +210,12 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
     if (!stored) return;
     const live = bodies.current.get(id);
     const cell = live?.source === stored ? { ...stored, x: live.x, y: live.y } : stored;
-    const { width, height } = field.current.getBoundingClientRect();
+    const rect = field.current.getBoundingClientRect();
+    const { width, height } = rect;
     const generation = cell.generation + 1;
     const size = Math.max(56, cell.size * .92);
     const radius = size / 2;
+    const bounds = cellBounds(rect, size, cell.outside);
     const others = cells.filter(item => item.id !== id);
     const firstId = nextId.current;
     nextId.current += 2;
@@ -220,9 +226,9 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
       const targetX = cell.x * width / 100 + side * Math.cos(angle) * distance;
       const targetY = cell.y * height / 100 + side * Math.sin(angle) * distance;
       return {
-        id: firstId + index, generation, size, pigment: components[index], fromColor: cellColor(cell), fromSize: cell.size, birth: firstId, texture: cell.texture??(cell.id-1)%8,
-        x: Math.max(radius, Math.min(width - radius, targetX)) / width * 100,
-        y: Math.max(radius, Math.min(height - radius, targetY)) / height * 100,
+        id: firstId + index, generation, size, outside: cell.outside, pigment: components[index], fromColor: cellColor(cell), fromSize: cell.size, birth: firstId, texture: cell.texture??(cell.id-1)%8,
+        x: Math.max(bounds.left, Math.min(bounds.right, targetX)) / width * 100,
+        y: Math.max(bounds.top, Math.min(bounds.bottom, targetY)) / height * 100,
         fromX: cell.x, fromY: cell.y,
       };
     });

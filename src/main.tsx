@@ -21,6 +21,11 @@ import "../experience/theme.css";
 // Native image/link dragging must not compete with the interactive cells.
 document.addEventListener("dragstart", event => event.preventDefault());
 flushSync(() => createRoot(document.getElementById("root")!).render(<App />));
+const player = document.getElementById("player-shell")!;
+// Reveal the composited deck only after every image layer is decoded.
+const playerImageReady = Promise.all(
+  [...player.querySelectorAll("img")].map(image => image.decode()),
+).then(() => true, () => false);
 async function startControllers() {
   await import("../experience/scene.js");
   await import("../experience/profile.js");
@@ -29,12 +34,15 @@ async function startControllers() {
   await import("../experience/liquid.js");
   await import("../experience/about-tunnel.js");
   await import("../experience/name-murmuration.js");
-  document.querySelector<HTMLButtonElement>("#record-control")!.disabled =
-    false;
+  player.dataset.imageReady = String(await playerImageReady);
+  document.querySelector<HTMLButtonElement>("#record-control")!.disabled = false;
+  document.body.dataset.ready = "true";
   window.dispatchEvent(new Event("portfolio:ready"));
 }
 startControllers().catch((error) => {
   console.error("Portfolio initialization failed", error);
   document.getElementById("announcer")!.textContent =
+    "Unable to start the page. Please reload.";
+  document.querySelector(".intro-loading")!.textContent =
     "Unable to start the page. Please reload.";
 });
