@@ -51,6 +51,7 @@ def scene(browser, width, reduced=False):
     page.goto('http://127.0.0.1:4173/experience/')
     page.locator('#record-control').click()
     page.wait_for_selector('body[data-state=scene]')
+    page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
     expect(page.locator('.light-cells')).to_have_attribute('data-count','5')
     assert page.locator('.cell-motion-toggle').count()==0
     return page
@@ -98,9 +99,10 @@ with sync_playwright() as p:
         page.locator('.living-cell').last.dispatch_event('click')
         cells=page.locator('.living-cell')
         selected=cells.nth(-3);a=cells.nth(-2);b=cells.last
-        move_to(page,selected,width*.72,300)
-        move_to(page,a,width*.35,620)
-        move_to(page,b,width*.35+20,620)
+        field=page.locator('.light-cells').bounding_box()
+        move_to(page,selected,field['x']+field['width']*.72,field['y']+field['height']*.25)
+        move_to(page,a,field['x']+field['width']*.45,field['y']+field['height']*.7)
+        move_to(page,b,field['x']+field['width']*.45+20,field['y']+field['height']*.7)
         page.emulate_media(reduced_motion='no-preference')
         page.wait_for_function('''() => {const svg=document.querySelector('.cell-fusion');
             return Number(svg.style.opacity)>0 && Number(svg.dataset.progress)>.1}''',timeout=8000)

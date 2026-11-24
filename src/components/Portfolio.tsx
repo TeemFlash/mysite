@@ -1,5 +1,6 @@
 import turntable from "../../experience/reference-turntable.png";
 import heart from "../../experience/faceted-heart.svg";
+import { SceneCells } from "./SceneCells";
 
 export function Scene() {
   return (
@@ -189,6 +190,7 @@ export function About() {
           </div>
         </div>
       </div>
+      <SceneCells />
     </section>
   );
 }

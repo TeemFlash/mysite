@@ -9,11 +9,15 @@ with sync_playwright() as p:
         page.goto('http://127.0.0.1:4173/experience/')
         page.locator('#record-control').click()
         page.wait_for_selector('body[data-state=scene]')
+        page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
         field=page.locator('.light-cells')
         expect(field).to_have_attribute('data-count','5')
         cells=page.locator('.living-cell')
         initial=cells.evaluate_all('(nodes)=>nodes.map(n=>{const r=n.getBoundingClientRect();return {id:n.dataset.cellId,x:r.x,y:r.y,w:r.width}})')
-        assert len({round(c['y']/100) for c in initial})==5, 'Seeds spread between sections'
+        assert field.evaluate("el=>el.closest('#about')!==null"), 'The colony belongs only to About'
+        bounds=field.bounding_box()
+        assert all(bounds['x']<=c['x'] and bounds['y']<=c['y'] and c['x']+c['w']<=bounds['x']+bounds['width'] and c['y']+c['w']<=bounds['y']+bounds['height'] for c in initial), 'All five seeds fit inside About'
+        assert len({round(c['y']) for c in initial})>=3, 'Seeds have breathing room in both axes'
         parent_color=cells.first.locator('.cell-nucleus').evaluate('n=>getComputedStyle(n).color')
         cells.first.click()
         expect(field).to_have_attribute('data-count','6')

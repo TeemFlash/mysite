@@ -1,6 +1,22 @@
 """Forward/reverse morph endpoints use the same center, scale and nucleus texture."""
 from playwright.sync_api import sync_playwright, expect
 
+
+def place(page, cell, x, y):
+    # Keyboard placement targets the requested cell even when membranes overlap.
+    box=cell.bounding_box()
+    cell.focus()
+    for delta,negative,positive in ((x-box['x']-box['width']/2,'ArrowLeft','ArrowRight'),(y-box['y']-box['height']/2,'ArrowUp','ArrowDown')):
+        for _ in range(round(abs(delta)/20)):
+            page.keyboard.press(negative if delta<0 else positive)
+
+
+def park_seeds(page):
+    field=page.locator('.light-cells').bounding_box()
+    for cell_id,x,y in ((2,44,44),(3,field['width']-49,49),(4,44,field['height']-44),(5,field['width']-49,field['height']-49)):
+        place(page,page.locator(f'[data-cell-id="{cell_id}"]'),field['x']+x,field['y']+y)
+    return field
+
 with sync_playwright() as p:
     browser=p.chromium.launch()
     for width in (1440,375):
@@ -11,6 +27,7 @@ with sync_playwright() as p:
         page.goto('http://127.0.0.1:4173/experience/')
         page.locator('#record-control').click()
         page.wait_for_selector('body[data-state=scene]')
+        page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
         cells=page.locator('.living-cell');cells.first.wait_for()
         page.evaluate("""() => {
           window.exposedNuclei=[];window.splitEnd=null;let started=false;
@@ -64,9 +81,10 @@ with sync_playwright() as p:
         a,b=cells.nth(-2).bounding_box(),cells.last.bounding_box()
         end=page.evaluate('splitEnd')
         assert end['width']*.9 < end['gap'] < end['width']*1.6, 'Membranes close and separate before returning to free drift'
-        # Bring the daughters together and record the last rendered frame across replacement.
-        page.mouse.move(b['x']+b['width']/2,b['y']+b['height']/2);page.mouse.down()
-        page.mouse.move(a['x']+a['width']/2+20,a['y']+a['height']/2,steps=10);page.mouse.up()
+        # Keep unrelated seeds away so this regression observes these two daughters.
+        field=park_seeds(page)
+        place(page,cells.nth(-2),field['x']+field['width']/2-10,field['y']+field['height']/2)
+        place(page,cells.last,field['x']+field['width']/2+10,field['y']+field['height']/2)
         page.evaluate('''() => {
           window.handoff=[];let count=400;
           const sample=n=>{const r=n.getBoundingClientRect();return {cx:r.x+r.width/2,cy:r.y+r.height/2,w:r.width,mask:n.querySelector('.cell-nucleus').style.maskImage}};

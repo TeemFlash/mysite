@@ -218,7 +218,7 @@ export function useCellMotion(field: RefObject<HTMLDivElement | null>, cells: Ce
       const dt = last ? Math.min(.05, (now-last)/1000) : 0;
       last = now;
       const rect = root!.getBoundingClientRect();
-      if (!rect.width) return;
+      if (!rect.width || !rect.height) return;
       const current = latest.current.cells;
       const ids = new Set(current.map(c => c.id));
       const changedPair = joining && current.some(cell => (cell.id===joining!.a || cell.id===joining!.b) && bodies.current.get(cell.id)?.source !== cell);
@@ -257,7 +257,6 @@ export function useCellMotion(field: RefObject<HTMLDivElement | null>, cells: Ce
         joining = null;
       }
       const splitting=new Set([...splits.values()].flatMap(pair=>[pair.a,pair.b]));
-      const pageHeight=document.documentElement.scrollHeight;
       for (const body of list) {
         const radius=body.source.size/2;
         body.age += dt;
@@ -272,14 +271,14 @@ export function useCellMotion(field: RefObject<HTMLDivElement | null>, cells: Ce
         }
         body.vx += (Math.sin(now*.00043+body.source.id)*6+(Math.random()-.5)*35-body.vx*.22)*dt;
         body.vy += (Math.cos(now*.00051+body.source.id*1.7)*6+(Math.random()-.5)*35-body.vy*.22)*dt;
-        const sx = rect.left + body.x*rect.width/100;
-        const sy = rect.top + body.y*rect.height/100;
-        if (sx < radius+8) body.vx = Math.abs(body.vx);
-        if (sx > innerWidth-radius-8) body.vx = -Math.abs(body.vx);
-        if (sy+scrollY < radius+8) body.vy = Math.abs(body.vy);
-        if (sy+scrollY > pageHeight-radius-8) body.vy = -Math.abs(body.vy);
-        body.x = (Math.max(radius, Math.min(innerWidth-radius, sx+body.vx*dt))-rect.left)/rect.width*100;
-        body.y = (Math.max(radius-scrollY, Math.min(pageHeight-scrollY-radius, sy+body.vy*dt))-rect.top)/rect.height*100;
+        const x = body.x*rect.width/100;
+        const y = body.y*rect.height/100;
+        if (x < radius+8) body.vx = Math.abs(body.vx);
+        if (x > rect.width-radius-8) body.vx = -Math.abs(body.vx);
+        if (y < radius+8) body.vy = Math.abs(body.vy);
+        if (y > rect.height-radius-8) body.vy = -Math.abs(body.vy);
+        body.x = Math.max(radius, Math.min(rect.width-radius, x+body.vx*dt))/rect.width*100;
+        body.y = Math.max(radius, Math.min(rect.height-radius, y+body.vy*dt))/rect.height*100;
       }
       if (!joining) {
         outer: for (let i=0;i<list.length;i++) for(let j=i+1;j<list.length;j++) {
@@ -300,9 +299,10 @@ export function useCellMotion(field: RefObject<HTMLDivElement | null>, cells: Ce
         const a=bodies.current.get(joining.a)!, b=bodies.current.get(joining.b)!;
         const weight=a.source.size**2/(a.source.size**2+b.source.size**2);
         const combined=Math.min(120,Math.hypot(a.source.size,b.source.size));
-        const centerX=rect.left+(joining.ax*weight+joining.bx*(1-weight))*rect.width/100;
-        const x=(Math.max(combined/2,Math.min(innerWidth-combined/2,centerX))-rect.left)/rect.width*100;
-        const y=joining.ay*weight+joining.by*(1-weight);
+        const centerX=(joining.ax*weight+joining.bx*(1-weight))*rect.width/100;
+        const centerY=(joining.ay*weight+joining.by*(1-weight))*rect.height/100;
+        const x=Math.max(combined/2,Math.min(rect.width-combined/2,centerX))/rect.width*100;
+        const y=Math.max(combined/2,Math.min(rect.height-combined/2,centerY))/rect.height*100;
         morph.draw(a,b,{...joining,x,y,size:combined,color:mixedColor(a.source,b.source)},t,rect);
         if(t===1) { latest.current.merge(joining.a,joining.b,x,y); joining=null; }
       }

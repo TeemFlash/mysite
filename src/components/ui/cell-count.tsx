@@ -75,7 +75,8 @@ function haloSprite(fill: string, rimCol: string, size: number) {
   return { membrane:c.toDataURL(), material };
 }
 
-const INITIAL: Cell = { id: 1, generation: 0, size: 100, x: 50, y: 50, fromX: 50, fromY: 50 };
+const INITIAL: Cell[] = [[50, 50, 100], [22, 20, 86], [78, 20, 96], [22, 80, 86], [78, 80, 96]]
+  .map(([x, y, size], index) => ({ id: index + 1, generation: 0, size, x, y, fromX: x, fromY: y }));
 const COLORS = ["#8869FC", "#27C699", "#FB82C0", "#CFE537", "#7FDBF7", "#FC5E54", "#FC9037", "#FBD05D"];
 const rgb = (hex: string): [number, number, number] => [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16)) as [number, number, number];
 
@@ -103,10 +104,9 @@ const CellButton = memo(function CellButton({ cell, sprite, membrane, ru }: {
 });
 
 export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
-  const [cells, setCells] = useState<Cell[]>([INITIAL]);
+  const [cells, setCells] = useState<Cell[]>(INITIAL);
   const [sprites, setSprites] = useState<{ membrane: string; material: string; nuclei: string[] }>();
   const nextId = useRef(6);
-  const seeded = useRef(false);
   const field = useRef<HTMLDivElement>(null);
   const drag = useRef<{ id: number; cellId: number; x: number; y: number; moved: boolean } | null>(null);
   const bodies = useCellMotion(field, cells, active, drag, sprites, (a,b,x,y) => {
@@ -118,23 +118,6 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
       return [...current.filter(c=>c.id!==a&&c.id!==b), {id,generation:parent.generation,size:Math.min(120,Math.hypot(parent.size,second.size)),texture:parent.texture??(parent.id-1)%8,x,y,fromX:x,fromY:y,pigment:mixPigments(cellPigment(parent),cellPigment(second))}];
     });
   });
-  useEffect(() => {
-    if (!active || seeded.current || !field.current) return;
-    const rect = field.current.getBoundingClientRect();
-    if (!rect.width) return;
-    const seeds = ['about', 'skills', 'work', 'contact'].flatMap((id, index) => {
-      const section = document.getElementById(id);
-      if (!section) return [];
-      const box = section.getBoundingClientRect();
-      const size = 86 + index % 2 * 10;
-      const screenX = index % 2 ? innerWidth - size / 2 - 16 : size / 2 + 16;
-      const x = (screenX - rect.left) / rect.width * 100;
-      const y = (box.top + Math.min(box.height * .65, 180) - rect.top) / rect.height * 100;
-      return [{ id: index + 2, generation: 0, size, x, y, fromX: x, fromY: y }];
-    });
-    seeded.current = true;
-    setCells(current => [...current, ...seeds]);
-  }, [active]);
   const suppressClick = useRef(false);
   const pendingMove = useRef<{ id: number; dx: number; dy: number } | null>(null);
   const moveFrame = useRef(0);
@@ -162,8 +145,8 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
       const live = bodies.current.get(id);
       const position = live?.source === cell ? live : cell;
       const radius = cell.size / 2;
-      const x = (Math.max(radius, Math.min(innerWidth - radius, rect.left + position.x * rect.width / 100 + dx)) - rect.left) / rect.width * 100;
-      const y = (Math.max(radius, Math.min(innerHeight - radius, rect.top + position.y * rect.height / 100 + dy)) - rect.top) / rect.height * 100;
+      const x = Math.max(radius, Math.min(rect.width - radius, position.x * rect.width / 100 + dx)) / rect.width * 100;
+      const y = Math.max(radius, Math.min(rect.height - radius, position.y * rect.height / 100 + dy)) / rect.height * 100;
       if(live) { live.node.style.translate=""; live.node.style.opacity=""; live.node.style.scale=""; }
       bodies.current.delete(id);
       return { ...cell, x, y, fromX: x, fromY: y, birth: undefined };
@@ -171,23 +154,25 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
   }
   useEffect(() => {
     if (!active) return;
-    function keepOnPage() {
+    function keepInField() {
       const node = field.current;
       if (!node) return;
       const rect = node.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      const pageTop = rect.top + scrollY;
       setCells(current => current.map(cell => {
         const radius = cell.size / 2;
-        const x = (Math.max(radius, Math.min(innerWidth - radius, rect.left + cell.x * rect.width / 100)) - rect.left) / rect.width * 100;
-        const y = (Math.max(radius, Math.min(document.documentElement.scrollHeight - radius, pageTop + cell.y * rect.height / 100)) - pageTop) / rect.height * 100;
-        if (Math.abs(x-cell.x) < .01 && Math.abs(y-cell.y) < .01) return cell;
+        const live = bodies.current.get(cell.id);
+        const position = live?.source === cell ? live : cell;
+        const x = Math.max(radius, Math.min(rect.width - radius, position.x * rect.width / 100)) / rect.width * 100;
+        const y = Math.max(radius, Math.min(rect.height - radius, position.y * rect.height / 100)) / rect.height * 100;
+        if (Math.abs(x-position.x) < .01 && Math.abs(y-position.y) < .01) return cell;
         return { ...cell, x, y, fromX: x, fromY: y, birth: undefined };
       }));
     }
-    keepOnPage();
-    window.addEventListener("resize", keepOnPage);
-    return () => window.removeEventListener("resize", keepOnPage);
+    keepInField();
+    const observer = new ResizeObserver(keepInField);
+    observer.observe(field.current!);
+    return () => observer.disconnect();
   }, [active]);
   function startDrag(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0 || !event.isPrimary || !(event.target as Element).closest("[data-cell-id]")) return;
@@ -221,7 +206,7 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
     if (!stored) return;
     const live = bodies.current.get(id);
     const cell = live?.source === stored ? { ...stored, x: live.x, y: live.y } : stored;
-    const { width, height, left, top } = field.current.getBoundingClientRect();
+    const { width, height } = field.current.getBoundingClientRect();
     const generation = cell.generation + 1;
     const size = Math.max(56, cell.size * .92);
     const radius = size / 2;
@@ -232,12 +217,12 @@ export function CellCount({ active, ru }: { active: boolean; ru: boolean }) {
     const distance = radius * (1.1 + Math.random() * .4);
     const components = splitPigment(cellPigment(cell), cell.id);
     const daughters = [-1, 1].map((side, index) => {
-      const screenX = left + cell.x * width / 100 + side * Math.cos(angle) * distance;
-      const screenY = top + cell.y * height / 100 + side * Math.sin(angle) * distance;
+      const targetX = cell.x * width / 100 + side * Math.cos(angle) * distance;
+      const targetY = cell.y * height / 100 + side * Math.sin(angle) * distance;
       return {
         id: firstId + index, generation, size, pigment: components[index], fromColor: cellColor(cell), fromSize: cell.size, birth: firstId, texture: cell.texture??(cell.id-1)%8,
-        x: (Math.max(radius, Math.min(innerWidth - radius, screenX)) - left) / width * 100,
-        y: (Math.max(radius, Math.min(innerHeight - radius, screenY)) - top) / height * 100,
+        x: Math.max(radius, Math.min(width - radius, targetX)) / width * 100,
+        y: Math.max(radius, Math.min(height - radius, targetY)) / height * 100,
         fromX: cell.x, fromY: cell.y,
       };
     });

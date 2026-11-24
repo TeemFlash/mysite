@@ -1,5 +1,21 @@
 from playwright.sync_api import sync_playwright, expect
 
+
+def place(page, cell, x, y):
+    # Keyboard placement targets the requested cell even when membranes overlap.
+    box=cell.bounding_box()
+    cell.focus()
+    for delta,negative,positive in ((x-box['x']-box['width']/2,'ArrowLeft','ArrowRight'),(y-box['y']-box['height']/2,'ArrowUp','ArrowDown')):
+        for _ in range(round(abs(delta)/20)):
+            page.keyboard.press(negative if delta<0 else positive)
+
+
+def park_seeds(page):
+    field=page.locator('.light-cells').bounding_box()
+    for cell_id,x,y in ((2,44,44),(3,field['width']-49,49),(4,44,field['height']-44),(5,field['width']-49,field['height']-49)):
+        place(page,page.locator(f'[data-cell-id="{cell_id}"]'),field['x']+x,field['y']+y)
+    return field
+
 with sync_playwright() as p:
     browser=p.chromium.launch()
     for width in (1440,375):
@@ -9,6 +25,7 @@ with sync_playwright() as p:
         page.goto('http://127.0.0.1:4173/experience/')
         page.locator('#record-control').click()
         page.wait_for_selector('body[data-state=scene]')
+        page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
         cell=page.locator('.living-cell').first
         cell.wait_for()
         before=cell.bounding_box()
@@ -21,11 +38,9 @@ with sync_playwright() as p:
         cell.click()
         expect(page.locator('.light-cells')).to_have_attribute('data-count','6')
         page.wait_for_timeout(500)
-        first=page.locator('.living-cell').nth(-2).bounding_box()
-        second=page.locator('.living-cell').last.bounding_box()
-        x=second['x']+second['width']/2;y=second['y']+second['height']/2
-        page.mouse.move(x,y);page.mouse.down()
-        page.mouse.move(first['x']+first['width']/2+50,first['y']+first['height']/2,steps=10);page.mouse.up()
+        field=park_seeds(page)
+        place(page,page.locator('.living-cell').nth(-2),field['x']+field['width']/2-10,field['y']+field['height']/2)
+        place(page,page.locator('.living-cell').last,field['x']+field['width']/2+10,field['y']+field['height']/2)
         source_colors=page.locator('.living-cell').evaluate_all('(nodes)=>nodes.slice(-2).map(n=>getComputedStyle(n.querySelector(".cell-nucleus")).backgroundColor)')
         page.emulate_media(reduced_motion='no-preference')
         page.wait_for_function("Number(document.querySelector('.cell-fusion').style.opacity) > .1",timeout=7000)
@@ -68,7 +83,7 @@ with sync_playwright() as p:
         frozen=page.locator('.living-cell').first.get_attribute('style')
         page.wait_for_timeout(300)
         assert page.locator('.living-cell').first.get_attribute('style')==frozen, 'Offscreen motion should stop'
-        page.evaluate('scrollTo(0,0)')
+        page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
         page.emulate_media(reduced_motion='reduce')
         page.wait_for_timeout(100)
         frozen=page.locator('.living-cell').first.get_attribute('style')

@@ -11,6 +11,7 @@ with sync_playwright() as p:
             page.goto('http://127.0.0.1:4173/experience/')
             page.locator('#record-control').click()
             page.wait_for_selector('body[data-state=scene]')
+            page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
             box=page.locator('.living-cell').first.bounding_box()
             page.mouse.click(box['x']+box['width']/2,box['y']+box['height']/2)
             field = page.locator('.light-cells')

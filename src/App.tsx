@@ -1,4 +1,3 @@
-import { SceneCells } from "./components/SceneCells";
 import {
   Scene,
   RecordPlayer,
@@ -17,7 +16,6 @@ import {
 export function App() {
   return (
     <>
-      <SceneCells />
       <Scene />
       <RecordPlayer />
       <LanguageControls />

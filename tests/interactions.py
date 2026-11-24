@@ -20,6 +20,7 @@ with sync_playwright() as p:
         page.mouse.up()
         assert page.evaluate('String(getSelection())') == ''
         assert page.locator('img').first.evaluate("el => !el.dispatchEvent(new Event('dragstart',{bubbles:true,cancelable:true}))")
+        field.evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
         box=first.bounding_box(); x=box['x']+box['width']/2; y=box['y']+box['height']/2
         if touch:
             cdp=page.context.new_cdp_session(page)
@@ -44,10 +45,11 @@ with sync_playwright() as p:
             expect(field).to_have_attribute('data-count','7')
             page.wait_for_timeout(100)
             # Swipe empty space, not a cell: normal scrolling must remain available.
+            scroll_before=page.evaluate('scrollY')
             for kind, points in [('touchStart',[{'x':width-10,'y':750}]),('touchMove',[{'x':width-10,'y':350}]),('touchEnd',[])]:
                 cdp.send('Input.dispatchTouchEvent',{'type':kind,'touchPoints':points})
                 page.wait_for_timeout(80)
-            page.wait_for_function('scrollY > 100')
+            page.wait_for_function('before=>scrollY > before+50',arg=scroll_before)
         else:
             cell=page.locator('.living-cell').first
             cell.focus()

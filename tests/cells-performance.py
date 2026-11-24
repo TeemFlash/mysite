@@ -7,6 +7,7 @@ with sync_playwright() as p:
     page.goto('http://127.0.0.1:4173/experience/')
     page.locator('#record-control').click()
     page.wait_for_selector('body[data-state=scene]')
+    page.locator('.light-cells').evaluate("el=>el.scrollIntoView({block:'center',behavior:'instant'})")
     page.emulate_media(reduced_motion='reduce')
     for _ in range(150):
         page.locator('.living-cell').last.dispatch_event('click')
@@ -18,8 +19,9 @@ with sync_playwright() as p:
       cellObserver.observe(el,{attributes:true,subtree:true,childList:true}); }''')
     cell=page.locator('.living-cell').last
     rect=cell.bounding_box();x=rect['x']+rect['width']/2;y=rect['y']+rect['height']/2
-    dx=140 if x<720 else -140
-    dy=60 if y<450 else -60
+    field=page.locator('.light-cells').bounding_box()
+    dx=140 if x<field['x']+field['width']/2 else -140
+    dy=60 if y<field['y']+field['height']/2 else -60
     page.mouse.move(x,y);page.mouse.down();page.mouse.move(x+dx,y+dy,steps=60);page.mouse.up()
     page.wait_for_timeout(100)
     assert page.evaluate('stationaryChanges')==0, 'Moving one cell must not update stationary cells'
